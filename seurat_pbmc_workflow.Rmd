@@ -1,0 +1,62 @@
+---
+title: "seurat_pbmc_workflow"
+author: "Itzel Espinoza"
+date: "2024-06-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(Seurat)
+library(patchwork)
+```
+
+
+
+```{r, echo=FALSE}
+
+# The dataset of the Peripheral Blood Mononuclear Cells (PBMC) is available at  https://cf.10xgenomics.com/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz
+
+# ------ Loading the PBMC dataset ------
+# pbmc_data = represents the raw count matrix where rows correspond to genes (or features), and columns correspond to individual cells
+
+pbmc_data <- Read10X(data.dir = "../filtered_gene_bc_matrices/hg19/")
+
+# ------ Initializing the Seurat object with the raw (non-normalized data) ------
+# Output is a container that holds single-cell RNA sequencing data, along with associated metadata and analysis results
+# min.cells = threshold for the min. number of cells in which a gene must be detected to be included in my analysis, which filter out lowly expressed genes that may be noise
+# min.features = threshold for the min. number of genes (or features) that must be detected in a given cell for that cell to be included, which excludes empty or poor-quality cells that don't have enough data
+
+pbmc <- CreateSeuratObject(counts = pbmc_data, project = "pbmc3k", min.cells = 3, min.features = 200)
+pbmc
+
+# ------ Exploring the count matrix ------ 
+# Taking a look at what genes are inside the count matrix
+rownames(pbmc_data)
+
+# Genes in the first twenty cells
+pbmc_data[c("TP53","CASP9","MAP3K6","MT-CO3"), 1:20]
+
+# ------ Memory Usage and Efficiency  ------ 
+
+# Sparse-matrix
+# The . values in the matrix represent 0s (no molecules detected) and Seurat uses a sparse-matrix representation whenever possible for more memory and speed savings
+sparse.size <- object.size(pbmc_data)
+sparse.size
+
+# Comparison to a Regular matrix (x23.7 bigger)
+memory.size <- object.size(as.matrix(pbmc_data))
+memory.size
+
+# Identify mitochondrial genes, these genes start with "MT-"
+# Low-quality / dying cells often show extensive mitochondrial contamination, will have to filter out later
+mt_rows <- grep("^MT-", rownames(pbmc_data))
+filtered_matrix <- pbmc_data[mt_rows, ]
+
+
+```
+
+## Including Plots
+
