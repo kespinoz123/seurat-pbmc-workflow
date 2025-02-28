@@ -3,6 +3,8 @@ title: "seurat_pbmc_workflow"
 author: "Itzel Espinoza"
 date: "2024-06-22"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(Seurat)
 library(patchwork)
+library(ggplot2)
 ```
 
 
@@ -49,14 +52,83 @@ sparse.size
 # Comparison to a Regular matrix (x23.7 bigger)
 memory.size <- object.size(as.matrix(pbmc_data))
 memory.size
+```
 
+# Visualizing Quality Control Metrics with Violin Plots
+
+- `nFeature_RNA`: The number of genes detected in each cell.
+- `nCount_RNA`: The total number of RNA molecules detected in each cell (overall count).
+- `percent.mt`: The percentage of mitochondrial gene expression in each cell
+
+```{r}
+
+# ------ Quality Control  ------ 
 # Identify mitochondrial genes, these genes start with "MT-"
 # Low-quality / dying cells often show extensive mitochondrial contamination, will have to filter out later
 mt_rows <- grep("^MT-", rownames(pbmc_data))
 filtered_matrix <- pbmc_data[mt_rows, ]
 
 
+#  Adding Mitochondrial Gene QC Metric
+# This computes the % of mitochondrial gene expression for each cell and stores it as a metadata column (percent.mt) in the pbmc Seurat object
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+
+#  ------ QC metrics as a violin plot ------ 
+VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+
 ```
 
-## Including Plots
+# Visualizing Feature-Feature Relationships
+
+## Scatter Plot: nCount_RNA vs. percent.mt
+
+This figure shows the total RNA count per cell `(nCount_RNA)` against the percentage of mitochondrial genes expressed `(percent.mt)`
+
+*Interpretation:*
+- Typically, a higher percentage of mitochondrial gene expression is associated with lower total RNA counts. This pattern is often observed in stressed or dying cells, where mitochondrial RNA levels increase as the cell deteriorates, leading to a decrease in overall RNA content. Conversely, healthy cells usually maintain a higher total RNA count with a lower percentage of mitochondrial gene expression.
+- A correlation coefficient of -0.13 between nCount_RNA (total RNA count per cell) and percent.mt (percentage of mitochondrial gene expression) suggests a very weak negative relationship between these two variables.
+- Overall, this figure shows that cells with higher total RNA counts do not significantly differ in their mitochondrial gene expression percentages compared to cells with lower RNA counts.
+
+```{r}
+
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt") + geom_point(color = "royalblue") + NoLegend()
+plot1
+```
+
+
+## Scatter Plot: nCount_RNA vs. nFeature_RNA
+
+This plots the total RNA count per cell (nCount_RNA) against the number of features detected per cell (nFeature_RNA).
+
+*Interpretation:*
+- A strong correlation suggests that cells with higher RNA content also express a greater number of genes, which is typical in healthy cells. Deviations from this pattern may indicate issues like doublets or low-quality cells.
+- This figure shows a strong positive correlation with a correlation coefficient of `0.95`, meaning that cells with higher total RNA counts tend to express a greater number of genes.
+
+```{r}
+plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA") + NoLegend()
+plot2
+
+```
+
+
+## Side by Side Comparison of Scatter Plots
+```{r}
+plot1 + plot2
+
+```
+
+# Quality Control and Cell Filtering
+
+- *Low Gene Detection* `nFeature_RNA > 200`: Includes cells that have detected more than 200 genes.
+- *High Gene Detection* `nFeature_RNA < 2500`: Includes cells that have detected fewer than 2,500 genes.
+- *High Mitochondrial Content* `percent.mt < 5`: Includes cells where less than 5% of the detected genes are mitochondrial genes.
+
+```{r}
+
+# Filtering cells in the Seurat object based on specific quality control (QC) metrics:
+# 13714 features across 2638 samples ( -62 samples after filtering)
+
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+```
+
 
