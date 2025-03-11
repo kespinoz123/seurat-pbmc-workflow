@@ -132,3 +132,33 @@ pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent
 ```
 
 
+# Data Normalization
+
+Normalizing gene expression counts across all cells in the dataset. Normalizing corrects for differences in sequencing depth, makes gene expression comparable across cells and prepares data for downstream analysis such as dimensionality reduction & clustering. 
+
+*Log Normalization*
+- Global-scaling normalization is useful here because it adjusts each cell's gene expression values based on total RNA content, making them comparable across all cells.
+- Log transformation also stabilizes variance, reducing the influence of highly expressed genes
+- Prepares for downstream statistical analysis by helping approximate a normal distribution
+
+*The global-scaling normalization assumes that:*
+Most genes are not differentially expressed – The total RNA count per cell reflects technical effects rather than biological differences.
+
+*Potential issue:* If some cell types have inherently higher RNA content (e.g., due to size differences), global-scaling normalization might artificially reduce the expression of highly transcribed genes in those cells.
+
+```{r}
+# ------ Standard method of normalization ------ 
+# The "LogNormalize" method follows these steps:
+# 1. For each gene in each cell:
+# 2. Divide the gene’s expression count by the total expression of that cell.
+# 3. Multiply the result by a scale factor (default: 10,000) to avoid very small numbers.
+# 4. Apply a log transformation (log1p, or log(x + 1)) to stabilize variance.
+
+pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+
+pbmc <- NormalizeData(pbmc)
+
+# Alternative normalization method: To use SCTransform as this replaces the need to run NormalizeData, FindVariableFeatures, or ScaleData
+```
+
+
