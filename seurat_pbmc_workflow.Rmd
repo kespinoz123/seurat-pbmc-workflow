@@ -161,4 +161,63 @@ pbmc <- NormalizeData(pbmc)
 # Alternative normalization method: To use SCTransform as this replaces the need to run NormalizeData, FindVariableFeatures, or ScaleData
 ```
 
+# Identification of highly variable features
+
+Identifying highly variable features (genes) is a critical pre-processing step before dimensionality reduction and clustering. The goal is to retain genes that exhibit meaningful biological variation while filtering out noise and technical artifacts.
+
+## Scatter plot: All variable genes
+```{r}
+# ------ STEP 1 ------ 
+# This function identifies genes that show high variance across cells, which helps capture biological heterogeneity.
+
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+
+# `vst` uses the variance-stabilizing transformation (VST) method, which models the mean-variance relationship in single-cell data
+# `nfeatures = 2000` Selects the top 2,000 most variable genes for downstream analysis
+
+# ------ STEP 2 ------ 
+# Extracting and examining the Top Variable Genes
+# This function retrieves the genes identified as highly variable
+
+top10 <- head(VariableFeatures(pbmc), 10)
+
+# ------ STEP 3 ------ 
+# Visualizing Variable Genes
+# This function generates a scatter plot of all genes, showing their variability
+# Helps confirm that the feature selection method captures genes with high variance
+
+plot1 <- VariableFeaturePlot(pbmc, cols = c("black", "darkorange2")) +
+  ggtitle("Highly Variable Genes in PBMC Dataset")
+plot1
+
+
+```
+
+## Scatter plot: Highlighting the Top 10 Variable Genes
+
+The top 10 highly variable genes identified in this figure are primarily involved in immune response, inflammation, and cell signaling, suggesting substantial heterogeneity within the immune cell populations in the PBMC dataset. These genes, including markers for neutrophils, macrophages, and B cells, can provide valuable insights into immune activation and could serve as potential biomarkers for immune-related diseases or conditions.
+
+*Biological Significance:*
+- These genes are involved in immune and inflammatory responses
+- Many of them are markers of inflammatory immune cells (e.g., S100A9, S100A8, LYZ, GNLY) or iron metabolism (e.g., FTL, FTH1)
+- Platelet activation genes like PPBP and PF4 indicate a potential role in vascular and immune interactions
+```{r}
+# ------ STEP 3 ------ 
+# Visualizing Variable Genes
+# This function labels the top 10 most variable genes on the plot to highlight them
+
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE, size = 4) +
+  ggtitle("Top 10 Highly Variable Genes in PBMC Dataset")
+plot2
+
+# 11,714 = number of genes that did not show significant variation across the cells in your dataset
+# 2,000 = number of variable genes considered to be the most informative for capturing biological heterogeneity within the dataset
+```
+
+## Scatter plot: Side by side
+```{r}
+plot3 <- plot1 + plot2
+plot3
+```
+
 
